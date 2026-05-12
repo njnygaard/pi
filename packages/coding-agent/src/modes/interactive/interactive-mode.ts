@@ -116,7 +116,7 @@ import { ScopedModelsSelectorComponent } from "./components/scoped-models-select
 import { SessionSelectorComponent } from "./components/session-selector.js";
 import { SettingsSelectorComponent } from "./components/settings-selector.js";
 import { SkillInvocationMessageComponent } from "./components/skill-invocation-message.js";
-import { ToolExecutionComponent } from "./components/tool-execution.js";
+import { ToolExecutionComponent, type ToolExecutionOptions } from "./components/tool-execution.js";
 import { TreeSelectorComponent } from "./components/tree-selector.js";
 import { UserMessageComponent } from "./components/user-message.js";
 import { UserMessageSelectorComponent } from "./components/user-message-selector.js";
@@ -127,6 +127,7 @@ import {
 	getMarkdownTheme,
 	getThemeByName,
 	initTheme,
+	isThemeColor,
 	onThemeChange,
 	setRegisteredThemes,
 	setTheme,
@@ -380,7 +381,11 @@ export class InteractiveMode {
 		this.editorContainer = new Container();
 		this.editorContainer.addChild(this.editor as Component);
 		this.footerDataProvider = new FooterDataProvider(this.sessionManager.getCwd());
-		this.footer = new FooterComponent(this.session, this.footerDataProvider);
+		this.footer = new FooterComponent(
+			this.session,
+			this.footerDataProvider,
+			this.settingsManager.getThinkingLevelIndicator(),
+		);
 		this.footer.setAutoCompactEnabled(this.session.autoCompactionEnabled);
 
 		// Load hide thinking block setting
@@ -886,6 +891,25 @@ export class InteractiveMode {
 		return {
 			...getMarkdownTheme(),
 			codeBlockIndent: this.settingsManager.getCodeBlockIndent(),
+		};
+	}
+
+	private getAssistantMessagePaddingX(): number {
+		return this.settingsManager.getAssistantMessagePaddingX();
+	}
+
+	private shouldRenderLeadingToolSpacer(): boolean {
+		const previous = this.chatContainer.children[this.chatContainer.children.length - 1];
+		return !(
+			previous instanceof AssistantMessageComponent && previous.rendersOnlyHiddenThinkingLabelBeforeToolCalls()
+		);
+	}
+
+	private getToolExecutionOptions(): ToolExecutionOptions {
+		return {
+			showImages: this.settingsManager.getShowImages(),
+			imageWidthCells: this.settingsManager.getImageWidthCells(),
+			leadingSpacer: this.shouldRenderLeadingToolSpacer(),
 		};
 	}
 
@@ -1545,6 +1569,7 @@ export class InteractiveMode {
 	private applyRuntimeSettings(): void {
 		this.footer.setSession(this.session);
 		this.footer.setAutoCompactEnabled(this.session.autoCompactionEnabled);
+		this.footer.setThinkingLevelIndicator(this.settingsManager.getThinkingLevelIndicator());
 		this.footerDataProvider.setCwd(this.sessionManager.getCwd());
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
 		this.ui.setShowHardwareCursor(this.settingsManager.getShowHardwareCursor());
@@ -2686,6 +2711,7 @@ export class InteractiveMode {
 						this.hideThinkingBlock,
 						this.getMarkdownThemeWithSettings(),
 						this.hiddenThinkingLabel,
+						this.getAssistantMessagePaddingX(),
 					);
 					this.streamingMessage = event.message;
 					this.chatContainer.addChild(this.streamingComponent);
@@ -2706,10 +2732,7 @@ export class InteractiveMode {
 									content.name,
 									content.id,
 									content.arguments,
-									{
-										showImages: this.settingsManager.getShowImages(),
-										imageWidthCells: this.settingsManager.getImageWidthCells(),
-									},
+									this.getToolExecutionOptions(),
 									this.getRegisteredToolDefinition(content.name),
 									this.ui,
 									this.sessionManager.getCwd(),
@@ -2775,10 +2798,7 @@ export class InteractiveMode {
 						event.toolName,
 						event.toolCallId,
 						event.args,
-						{
-							showImages: this.settingsManager.getShowImages(),
-							imageWidthCells: this.settingsManager.getImageWidthCells(),
-						},
+						this.getToolExecutionOptions(),
 						this.getRegisteredToolDefinition(event.toolName),
 						this.ui,
 						this.sessionManager.getCwd(),
@@ -3073,6 +3093,7 @@ export class InteractiveMode {
 					this.hideThinkingBlock,
 					this.getMarkdownThemeWithSettings(),
 					this.hiddenThinkingLabel,
+					this.getAssistantMessagePaddingX(),
 				);
 				this.chatContainer.addChild(assistantComponent);
 				break;
@@ -3116,10 +3137,7 @@ export class InteractiveMode {
 							content.name,
 							content.id,
 							content.arguments,
-							{
-								showImages: this.settingsManager.getShowImages(),
-								imageWidthCells: this.settingsManager.getImageWidthCells(),
-							},
+							this.getToolExecutionOptions(),
 							this.getRegisteredToolDefinition(content.name),
 							this.ui,
 							this.sessionManager.getCwd(),
@@ -3370,7 +3388,12 @@ export class InteractiveMode {
 	}
 
 	private updateEditorBorderColor(): void {
-		if (this.isBashMode) {
+		const configuredBorderColor = this.settingsManager.getEditorBorderColor();
+		const useStaticBorder = this.settingsManager.getThinkingLevelIndicator() === "footerModel";
+
+		if (useStaticBorder && configuredBorderColor && isThemeColor(configuredBorderColor)) {
+			this.editor.borderColor = (text: string) => theme.fg(configuredBorderColor, text);
+		} else if (this.isBashMode) {
 			this.editor.borderColor = theme.getBashModeBorderColor();
 		} else {
 			const level = this.session.thinkingLevel || "off";
@@ -4820,6 +4843,7 @@ export class InteractiveMode {
 			}
 			setRegisteredThemes(this.session.resourceLoader.getThemes().themes);
 			this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
+			this.footer.setThinkingLevelIndicator(this.settingsManager.getThinkingLevelIndicator());
 			const themeName = this.settingsManager.getTheme();
 			const themeResult = themeName ? setTheme(themeName, true) : { success: true };
 			if (!themeResult.success) {

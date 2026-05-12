@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { AgentSession } from "../src/core/agent-session.js";
 import type { ReadonlyFooterDataProvider } from "../src/core/footer-data-provider.js";
 import { FooterComponent } from "../src/modes/interactive/components/footer.js";
-import { initTheme } from "../src/modes/interactive/theme/theme.js";
+import { initTheme, theme } from "../src/modes/interactive/theme/theme.js";
 
 type AssistantUsage = {
 	input: number;
@@ -87,6 +87,19 @@ describe("FooterComponent width handling", () => {
 		for (const line of lines) {
 			expect(visibleWidth(line)).toBeLessThanOrEqual(width);
 		}
+	});
+
+	it("colors the footer model label with the thinking level when configured", () => {
+		const session = createSession({
+			sessionName: "",
+			modelId: "test-model",
+			reasoning: true,
+			thinkingLevel: "high",
+		});
+		const footer = new FooterComponent(session, createFooterData(1), "footerModel");
+
+		const statsLine = footer.render(120)[1] ?? "";
+		expect(statsLine).toContain(theme.getFgAnsi("thinkingHigh"));
 	});
 
 	it("keeps stats line within width for wide model and provider names", () => {

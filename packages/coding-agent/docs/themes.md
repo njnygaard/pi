@@ -216,9 +216,9 @@ Every theme must define all 51 color tokens. There are no optional colors.
 | `syntaxOperator` | Operators |
 | `syntaxPunctuation` | Punctuation |
 
-### Thinking Level Borders (6 colors)
+### Thinking Level Colors (6 colors)
 
-Editor border colors indicating thinking level (visual hierarchy from subtle to prominent):
+Colors indicating thinking level (visual hierarchy from subtle to prominent). By default these color the editor border; with `ui.thinkingLevelIndicator = "footerModel"`, they color the footer model label instead.
 
 | Token | Purpose |
 |-------|---------|

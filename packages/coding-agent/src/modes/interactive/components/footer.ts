@@ -1,6 +1,7 @@
 import { type Component, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { AgentSession } from "../../../core/agent-session.js";
 import type { ReadonlyFooterDataProvider } from "../../../core/footer-data-provider.js";
+import type { ThinkingLevelIndicatorSetting } from "../../../core/settings-manager.js";
 import { theme } from "../theme/theme.js";
 
 /**
@@ -32,11 +33,15 @@ function formatTokens(count: number): string {
  */
 export class FooterComponent implements Component {
 	private autoCompactEnabled = true;
+	private thinkingLevelIndicator: ThinkingLevelIndicatorSetting = "editorBorder";
 
 	constructor(
 		private session: AgentSession,
 		private footerData: ReadonlyFooterDataProvider,
-	) {}
+		thinkingLevelIndicator: ThinkingLevelIndicatorSetting = "editorBorder",
+	) {
+		this.thinkingLevelIndicator = thinkingLevelIndicator;
+	}
 
 	setSession(session: AgentSession): void {
 		this.session = session;
@@ -44,6 +49,10 @@ export class FooterComponent implements Component {
 
 	setAutoCompactEnabled(enabled: boolean): void {
 		this.autoCompactEnabled = enabled;
+	}
+
+	setThinkingLevelIndicator(indicator: ThinkingLevelIndicatorSetting): void {
+		this.thinkingLevelIndicator = indicator;
 	}
 
 	/**
@@ -155,9 +164,9 @@ export class FooterComponent implements Component {
 		const minPadding = 2;
 
 		// Add thinking level indicator if model supports reasoning
+		const thinkingLevel = state.thinkingLevel || "off";
 		let rightSideWithoutProvider = modelName;
 		if (state.model?.reasoning) {
-			const thinkingLevel = state.thinkingLevel || "off";
 			rightSideWithoutProvider =
 				thinkingLevel === "off" ? `${modelName} • thinking off` : `${modelName} • ${thinkingLevel}`;
 		}
@@ -175,22 +184,19 @@ export class FooterComponent implements Component {
 		const rightSideWidth = visibleWidth(rightSide);
 		const totalNeeded = statsLeftWidth + minPadding + rightSideWidth;
 
-		let statsLine: string;
+		let padding = "";
+		let displayedRightSide = "";
 		if (totalNeeded <= width) {
 			// Both fit - add padding to right-align model
-			const padding = " ".repeat(width - statsLeftWidth - rightSideWidth);
-			statsLine = statsLeft + padding + rightSide;
+			padding = " ".repeat(width - statsLeftWidth - rightSideWidth);
+			displayedRightSide = rightSide;
 		} else {
 			// Need to truncate right side
 			const availableForRight = width - statsLeftWidth - minPadding;
 			if (availableForRight > 0) {
-				const truncatedRight = truncateToWidth(rightSide, availableForRight, "");
-				const truncatedRightWidth = visibleWidth(truncatedRight);
-				const padding = " ".repeat(Math.max(0, width - statsLeftWidth - truncatedRightWidth));
-				statsLine = statsLeft + padding + truncatedRight;
-			} else {
-				// Not enough space for right side at all
-				statsLine = statsLeft;
+				displayedRightSide = truncateToWidth(rightSide, availableForRight, "");
+				const truncatedRightWidth = visibleWidth(displayedRightSide);
+				padding = " ".repeat(Math.max(0, width - statsLeftWidth - truncatedRightWidth));
 			}
 		}
 
@@ -198,11 +204,14 @@ export class FooterComponent implements Component {
 		// that end with a reset, which would clear an outer dim wrapper. So we dim the parts
 		// before and after the colored section independently.
 		const dimStatsLeft = theme.fg("dim", statsLeft);
-		const remainder = statsLine.slice(statsLeft.length); // padding + rightSide
-		const dimRemainder = theme.fg("dim", remainder);
+		const dimPadding = theme.fg("dim", padding);
+		const rightSideText =
+			this.thinkingLevelIndicator === "footerModel"
+				? theme.getThinkingLevelColor(thinkingLevel)(displayedRightSide)
+				: theme.fg("dim", displayedRightSide);
 
 		const pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
-		const lines = [pwdLine, dimStatsLeft + dimRemainder];
+		const lines = [pwdLine, dimStatsLeft + dimPadding + rightSideText];
 
 		// Add extension statuses on a single line, sorted by key alphabetically
 		const extensionStatuses = this.footerData.getExtensionStatuses();

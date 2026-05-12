@@ -123,6 +123,54 @@ describe("ToolExecutionComponent parity", () => {
 		await promise;
 	});
 
+	test("does not leave a trailing blank line after bash duration", () => {
+		const component = new ToolExecutionComponent(
+			"bash",
+			"tool-bash-duration",
+			{ command: "echo hi" },
+			{},
+			createBashToolDefinition(process.cwd()),
+			createFakeTui(),
+			process.cwd(),
+		);
+		component.markExecutionStarted();
+		component.updateResult({ content: [{ type: "text", text: "hi" }], details: {}, isError: false }, false);
+
+		const renderedLines = component.render(80).map((line) => stripAnsi(line));
+		expect(renderedLines[renderedLines.length - 1]?.trim()).toMatch(/^Took \d+\.\d+s$/);
+	});
+
+	test("collapses stacked leading blank lines to a single spacer", () => {
+		const component = new ToolExecutionComponent(
+			"read",
+			"tool-leading-space",
+			{ path: "README.md" },
+			{},
+			createReadToolDefinition(process.cwd()),
+			createFakeTui(),
+			process.cwd(),
+		);
+
+		const renderedLines = component.render(80).map((line) => stripAnsi(line));
+		expect(renderedLines[0]?.trim()).toBe("");
+		expect(renderedLines[1]?.trim()).toContain("read");
+	});
+
+	test("removes tool shell padding when leading spacer is disabled", () => {
+		const component = new ToolExecutionComponent(
+			"read",
+			"tool-no-leading-space",
+			{ path: "README.md" },
+			{ leadingSpacer: false },
+			createReadToolDefinition(process.cwd()),
+			createFakeTui(),
+			process.cwd(),
+		);
+
+		const renderedLines = component.render(80).map((line) => stripAnsi(line));
+		expect(renderedLines[0]?.trim()).toContain("read");
+	});
+
 	test("does not duplicate built-in headers when passed the active built-in definition", () => {
 		const component = new ToolExecutionComponent(
 			"read",

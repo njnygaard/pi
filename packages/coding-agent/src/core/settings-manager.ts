@@ -50,6 +50,14 @@ export interface ThinkingBudgetsSettings {
 
 export interface MarkdownSettings {
 	codeBlockIndent?: string; // default: "  "
+	assistantMessagePaddingX?: number; // default: 1
+}
+
+export type ThinkingLevelIndicatorSetting = "editorBorder" | "footerModel";
+
+export interface UISettings {
+	editorBorderColor?: string; // theme foreground color token used when thinkingLevelIndicator is "footerModel"
+	thinkingLevelIndicator?: ThinkingLevelIndicatorSetting; // default: "editorBorder"
 }
 
 export interface WarningSettings {
@@ -108,6 +116,7 @@ export interface Settings {
 	autocompleteMaxVisible?: number; // Max visible items in autocomplete dropdown (default: 5)
 	showHardwareCursor?: boolean; // Show terminal cursor while still positioning it for IME
 	markdown?: MarkdownSettings;
+	ui?: UISettings;
 	warnings?: WarningSettings;
 	sessionDir?: string; // Custom session storage directory (same format as --session-dir CLI flag)
 }
@@ -1053,6 +1062,23 @@ export class SettingsManager {
 
 	getCodeBlockIndent(): string {
 		return this.settings.markdown?.codeBlockIndent ?? "  ";
+	}
+
+	getAssistantMessagePaddingX(): number {
+		const padding = this.settings.markdown?.assistantMessagePaddingX;
+		if (typeof padding !== "number" || !Number.isFinite(padding)) {
+			return 1;
+		}
+		return Math.max(0, Math.min(3, Math.floor(padding)));
+	}
+
+	getThinkingLevelIndicator(): ThinkingLevelIndicatorSetting {
+		const indicator = this.settings.ui?.thinkingLevelIndicator;
+		return indicator === "footerModel" ? "footerModel" : "editorBorder";
+	}
+
+	getEditorBorderColor(): string | undefined {
+		return this.settings.ui?.editorBorderColor;
 	}
 
 	getWarnings(): WarningSettings {

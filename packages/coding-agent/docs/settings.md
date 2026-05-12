@@ -47,6 +47,8 @@ Edit directly or use `/settings` for common options.
 | `editorPaddingX` | number | `0` | Horizontal padding for input editor (0-3) |
 | `autocompleteMaxVisible` | number | `5` | Max visible items in autocomplete dropdown (3-20) |
 | `showHardwareCursor` | boolean | `false` | Show terminal cursor |
+| `ui.editorBorderColor` | string | - | Theme foreground color token for a static input editor border when `ui.thinkingLevelIndicator` is `"footerModel"` |
+| `ui.thinkingLevelIndicator` | string | `"editorBorder"` | Where thinking-level color is shown: `"editorBorder"` (default) or `"footerModel"` |
 
 ### Telemetry and update checks
 
@@ -186,6 +188,7 @@ When multiple sources specify a session directory, precedence is `--session-dir`
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `markdown.codeBlockIndent` | string | `"  "` | Indentation for code blocks |
+| `markdown.assistantMessagePaddingX` | number | `1` | Horizontal padding for assistant text, hidden-thinking labels, and assistant errors (0-3) |
 
 ### Resources
 

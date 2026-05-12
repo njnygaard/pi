@@ -1,4 +1,5 @@
 import { Box, type Component, Container, getCapabilities, Image, Spacer, Text, type TUI } from "@earendil-works/pi-tui";
+import stripAnsi from "strip-ansi";
 import type { ToolDefinition, ToolRenderContext } from "../../../core/extensions/types.js";
 import { createAllToolDefinitions, type ToolName } from "../../../core/tools/index.js";
 import { getTextOutput as getRenderedTextOutput } from "../../../core/tools/render-utils.js";
@@ -8,6 +9,7 @@ import { theme } from "../theme/theme.js";
 export interface ToolExecutionOptions {
 	showImages?: boolean;
 	imageWidthCells?: number;
+	leadingSpacer?: boolean;
 }
 
 export class ToolExecutionComponent extends Container {
@@ -28,6 +30,7 @@ export class ToolExecutionComponent extends Container {
 	private isPartial = true;
 	private toolDefinition?: ToolDefinition<any, any>;
 	private builtInToolDefinition?: ToolDefinition<any, any>;
+	private leadingSpacer: boolean;
 	private ui: TUI;
 	private cwd: string;
 	private executionStarted = false;
@@ -57,10 +60,13 @@ export class ToolExecutionComponent extends Container {
 		this.builtInToolDefinition = createAllToolDefinitions(cwd)[toolName as ToolName];
 		this.showImages = options.showImages ?? true;
 		this.imageWidthCells = options.imageWidthCells ?? 60;
+		this.leadingSpacer = options.leadingSpacer ?? true;
 		this.ui = ui;
 		this.cwd = cwd;
 
-		this.addChild(new Spacer(1));
+		if (this.leadingSpacer) {
+			this.addChild(new Spacer(1));
+		}
 
 		// Always create all shell variants. contentBox is used for default renderer-based composition.
 		// selfRenderContainer is used when the tool renders its own framing.
@@ -222,7 +228,21 @@ export class ToolExecutionComponent extends Container {
 		if (this.hideComponent) {
 			return [];
 		}
-		return super.render(width);
+		let lines = super.render(width);
+		const isBlankLine = (line: string | undefined): boolean => stripAnsi(line ?? "").trim() === "";
+		if (!this.leadingSpacer) {
+			while (lines.length > 0 && isBlankLine(lines[0])) {
+				lines = lines.slice(1);
+			}
+		} else {
+			while (lines.length > 1 && isBlankLine(lines[0]) && isBlankLine(lines[1])) {
+				lines = lines.slice(1);
+			}
+		}
+		while (lines.length > 0 && isBlankLine(lines[lines.length - 1])) {
+			lines = lines.slice(0, -1);
+		}
+		return lines;
 	}
 
 	private updateDisplay(): void {

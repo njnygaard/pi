@@ -290,6 +290,30 @@ describe("SettingsManager", () => {
 		});
 	});
 
+	describe("ui rendering settings", () => {
+		it("should load assistant message padding", () => {
+			writeFileSync(join(agentDir, "settings.json"), JSON.stringify({ markdown: { assistantMessagePaddingX: 0 } }));
+			const manager = SettingsManager.create(projectDir, agentDir);
+			expect(manager.getAssistantMessagePaddingX()).toBe(0);
+		});
+
+		it("should clamp assistant message padding", () => {
+			writeFileSync(join(agentDir, "settings.json"), JSON.stringify({ markdown: { assistantMessagePaddingX: 10 } }));
+			const manager = SettingsManager.create(projectDir, agentDir);
+			expect(manager.getAssistantMessagePaddingX()).toBe(3);
+		});
+
+		it("should load footer thinking indicator and editor border color", () => {
+			writeFileSync(
+				join(agentDir, "settings.json"),
+				JSON.stringify({ ui: { thinkingLevelIndicator: "footerModel", editorBorderColor: "accent" } }),
+			);
+			const manager = SettingsManager.create(projectDir, agentDir);
+			expect(manager.getThinkingLevelIndicator()).toBe("footerModel");
+			expect(manager.getEditorBorderColor()).toBe("accent");
+		});
+	});
+
 	describe("getSessionDir", () => {
 		it("should return undefined when not set", () => {
 			writeFileSync(join(agentDir, "settings.json"), JSON.stringify({ theme: "dark" }));

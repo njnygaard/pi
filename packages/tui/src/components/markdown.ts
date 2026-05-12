@@ -27,6 +27,16 @@ markdownParser.setOptions({
 	tokenizer: new StrictStrikethroughTokenizer(),
 });
 
+const CODE_BLOCK_LINE_MARKER = "\u0000";
+
+function extractCodeBlockLineMarker(line: string): { isCodeBlockLine: boolean; lineText: string } {
+	const isCodeBlockLine = line.includes(CODE_BLOCK_LINE_MARKER);
+	return {
+		isCodeBlockLine,
+		lineText: isCodeBlockLine ? line.split(CODE_BLOCK_LINE_MARKER).join("") : line,
+	};
+}
+
 /**
  * Default text styling for markdown content.
  * Applied to all text unless overridden by markdown formatting.
@@ -68,6 +78,8 @@ export interface MarkdownTheme {
 	highlightCode?: (code: string, lang?: string) => string[];
 	/** Prefix applied to each rendered code block line (default: "  ") */
 	codeBlockIndent?: string;
+	/** Background applied across the full rendered code block line. */
+	codeBlockBackground?: (text: string) => string;
 }
 
 interface InlineStyleContext {
@@ -151,10 +163,14 @@ export class Markdown implements Component {
 		// Wrap lines (NO padding, NO background yet)
 		const wrappedLines: string[] = [];
 		for (const line of renderedLines) {
-			if (isImageLine(line)) {
-				wrappedLines.push(line);
+			const { isCodeBlockLine, lineText } = extractCodeBlockLineMarker(line);
+			if (isImageLine(lineText)) {
+				wrappedLines.push(lineText);
 			} else {
-				wrappedLines.push(...wrapTextWithAnsi(line, contentWidth));
+				const wrapped = wrapTextWithAnsi(lineText, contentWidth);
+				wrappedLines.push(
+					...wrapped.map((wrappedLine) => (isCodeBlockLine ? CODE_BLOCK_LINE_MARKER + wrappedLine : wrappedLine)),
+				);
 			}
 		}
 
@@ -165,15 +181,17 @@ export class Markdown implements Component {
 		const contentLines: string[] = [];
 
 		for (const line of wrappedLines) {
-			if (isImageLine(line)) {
-				contentLines.push(line);
+			const { isCodeBlockLine, lineText } = extractCodeBlockLineMarker(line);
+			if (isImageLine(lineText)) {
+				contentLines.push(lineText);
 				continue;
 			}
 
-			const lineWithMargins = leftMargin + line + rightMargin;
+			const lineWithMargins = leftMargin + lineText + rightMargin;
+			const lineBgFn = isCodeBlockLine ? (this.theme.codeBlockBackground ?? bgFn) : bgFn;
 
-			if (bgFn) {
-				contentLines.push(applyBackgroundToLine(lineWithMargins, width, bgFn));
+			if (lineBgFn) {
+				contentLines.push(applyBackgroundToLine(lineWithMargins, width, lineBgFn));
 			} else {
 				// No background - just pad to width
 				const visibleLen = visibleWidth(lineWithMargins);
@@ -337,20 +355,21 @@ export class Markdown implements Component {
 
 			case "code": {
 				const indent = this.theme.codeBlockIndent ?? "  ";
-				lines.push(this.theme.codeBlockBorder(`\`\`\`${token.lang || ""}`));
+				const markCodeBlockLine = (line: string): string => CODE_BLOCK_LINE_MARKER + line;
+				lines.push(markCodeBlockLine(this.theme.codeBlockBorder(`\`\`\`${token.lang || ""}`)));
 				if (this.theme.highlightCode) {
 					const highlightedLines = this.theme.highlightCode(token.text, token.lang);
 					for (const hlLine of highlightedLines) {
-						lines.push(`${indent}${hlLine}`);
+						lines.push(markCodeBlockLine(`${indent}${hlLine}`));
 					}
 				} else {
 					// Split code by newlines and style each line
 					const codeLines = token.text.split("\n");
 					for (const codeLine of codeLines) {
-						lines.push(`${indent}${this.theme.codeBlock(codeLine)}`);
+						lines.push(markCodeBlockLine(`${indent}${this.theme.codeBlock(codeLine)}`));
 					}
 				}
-				lines.push(this.theme.codeBlockBorder("```"));
+				lines.push(markCodeBlockLine(this.theme.codeBlockBorder("```")));
 				if (nextTokenType && nextTokenType !== "space") {
 					lines.push(""); // Add spacing after code blocks (unless space token follows)
 				}
