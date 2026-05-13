@@ -17,6 +17,7 @@ Edit directly or use `/settings` for common options.
 |---------|------|---------|-------------|
 | `defaultProvider` | string | - | Default provider (e.g., `"anthropic"`, `"openai"`) |
 | `defaultModel` | string | - | Default model ID |
+| `modelFavorites` | string[] | - | Favorite models in `provider/model` format, shown first in `/model` |
 | `defaultThinkingLevel` | string | - | `"off"`, `"minimal"`, `"low"`, `"medium"`, `"high"`, `"xhigh"` |
 | `hideThinkingBlock` | boolean | `false` | Hide thinking blocks in output |
 | `thinkingBudgets` | object | - | Custom token budgets per thinking level |
@@ -171,15 +172,17 @@ Normally the package manager's global modules location is queried using `root -g
 
 When multiple sources specify a session directory, precedence is `--session-dir`, `PI_CODING_AGENT_SESSION_DIR`, then `sessionDir` in settings.json.
 
-### Model Cycling
+### Model Cycling and Favorites
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `enabledModels` | string[] | - | Model patterns for Ctrl+P cycling (same format as `--models` CLI flag) |
+| `modelFavorites` | string[] | - | Favorite models in `provider/model` format, shown first in `/model` |
 
 ```json
 {
-  "enabledModels": ["claude-*", "gpt-4o", "gemini-2*"]
+  "enabledModels": ["claude-*", "gpt-4o", "gemini-2*"],
+  "modelFavorites": ["anthropic/claude-sonnet-4-5", "openai/gpt-5.2-codex"]
 }
 ```
 

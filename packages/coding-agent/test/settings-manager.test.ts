@@ -155,6 +155,22 @@ describe("SettingsManager", () => {
 		});
 	});
 
+	describe("model favorites", () => {
+		it("should load and save model favorites", async () => {
+			const settingsPath = join(agentDir, "settings.json");
+			writeFileSync(settingsPath, JSON.stringify({ modelFavorites: ["anthropic/claude-sonnet", "openai/gpt-5"] }));
+
+			const manager = SettingsManager.create(projectDir, agentDir);
+			expect(manager.getModelFavorites()).toEqual(["anthropic/claude-sonnet", "openai/gpt-5"]);
+
+			manager.setModelFavorites(["google/gemini-3-pro"]);
+			await manager.flush();
+
+			const savedSettings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+			expect(savedSettings.modelFavorites).toEqual(["google/gemini-3-pro"]);
+		});
+	});
+
 	describe("reload", () => {
 		it("should reload global settings from disk", async () => {
 			const settingsPath = join(agentDir, "settings.json");
