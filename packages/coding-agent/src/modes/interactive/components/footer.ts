@@ -165,19 +165,16 @@ export class FooterComponent implements Component {
 
 		// Add thinking level indicator if model supports reasoning
 		const thinkingLevel = state.thinkingLevel || "off";
-		let rightSideWithoutProvider = modelName;
-		if (state.model?.reasoning) {
-			rightSideWithoutProvider =
-				thinkingLevel === "off" ? `${modelName} • thinking off` : `${modelName} • ${thinkingLevel}`;
-		}
+		const thinkingLabel = thinkingLevel === "off" ? "thinking off" : thinkingLevel;
+		const formatRightSide = (modelLabel: string) =>
+			state.model?.reasoning ? `${thinkingLabel} • ${modelLabel}` : modelLabel;
 
 		// Prepend the provider in parentheses if there are multiple providers and there's enough room
-		let rightSide = rightSideWithoutProvider;
+		let rightSide = formatRightSide(modelName);
 		if (this.footerData.getAvailableProviderCount() > 1 && state.model) {
-			rightSide = `(${state.model!.provider}) ${rightSideWithoutProvider}`;
-			if (statsLeftWidth + minPadding + visibleWidth(rightSide) > width) {
-				// Too wide, fall back
-				rightSide = rightSideWithoutProvider;
+			const withProvider = formatRightSide(`(${state.model!.provider}) ${modelName}`);
+			if (statsLeftWidth + minPadding + visibleWidth(withProvider) <= width) {
+				rightSide = withProvider;
 			}
 		}
 

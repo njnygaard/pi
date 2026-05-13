@@ -102,6 +102,20 @@ describe("FooterComponent width handling", () => {
 		expect(statsLine).toContain(theme.getFgAnsi("thinkingHigh"));
 	});
 
+	it("renders thinking level before provider and model when shown in footer", () => {
+		const session = createSession({
+			sessionName: "",
+			modelId: "gpt-5.5",
+			provider: "openai-codex",
+			reasoning: true,
+			thinkingLevel: "high",
+		});
+		const footer = new FooterComponent(session, createFooterData(2), "footerModel");
+
+		const statsLine = footer.render(120)[1] ?? "";
+		expect(statsLine).toContain("high • (openai-codex) gpt-5.5");
+	});
+
 	it("keeps stats line within width for wide model and provider names", () => {
 		const width = 60;
 		const session = createSession({
