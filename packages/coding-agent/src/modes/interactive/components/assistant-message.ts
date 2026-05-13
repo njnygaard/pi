@@ -1,10 +1,52 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import { Container, Markdown, type MarkdownTheme, Spacer, Text } from "@earendil-works/pi-tui";
+import {
+	Box,
+	type Component,
+	Container,
+	Markdown,
+	type MarkdownTheme,
+	Spacer,
+	Text,
+	truncateToWidth,
+	visibleWidth,
+} from "@earendil-works/pi-tui";
 import { getMarkdownTheme, theme } from "../theme/theme.js";
 
 const OSC133_ZONE_START = "\x1b]133;A\x07";
 const OSC133_ZONE_END = "\x1b]133;B\x07";
 const OSC133_ZONE_FINAL = "\x1b]133;C\x07";
+
+class AgentResponseBar implements Component {
+	invalidate(): void {
+		// No cached state to invalidate currently
+	}
+
+	render(width: number): string[] {
+		const safeWidth = Math.max(1, width);
+		const label = " Agent Response ";
+		const base =
+			visibleWidth(label) >= safeWidth
+				? truncateToWidth(label, safeWidth, "")
+				: label + " ".repeat(safeWidth - visibleWidth(label));
+
+		// Invert the active accent foreground so the bar uses the same highlight color
+		// as the selected theme without requiring a separate background token.
+		return [`\x1b[7m${theme.getFgAnsi("accent")}${base}\x1b[27m\x1b[39m`];
+	}
+}
+
+class PromptRestatement extends Container {
+	constructor(promptText: string, markdownTheme: MarkdownTheme) {
+		super();
+		const box = new Box(1, 1, (content: string) => theme.bg("userMessageBg", content));
+		box.addChild(
+			new Markdown(promptText.trim(), 0, 0, markdownTheme, {
+				color: (content: string) => theme.fg("userMessageText", content),
+			}),
+		);
+		this.addChild(box);
+	}
+}
 
 /**
  * Component that renders a complete assistant message
@@ -15,6 +57,7 @@ export class AssistantMessageComponent extends Container {
 	private markdownTheme: MarkdownTheme;
 	private hiddenThinkingLabel: string;
 	private assistantPaddingX: number;
+	private promptText?: string;
 	private lastMessage?: AssistantMessage;
 	private hasToolCalls = false;
 
@@ -24,6 +67,7 @@ export class AssistantMessageComponent extends Container {
 		markdownTheme: MarkdownTheme = getMarkdownTheme(),
 		hiddenThinkingLabel = "Thinking...",
 		assistantPaddingX = 1,
+		promptText?: string,
 	) {
 		super();
 
@@ -31,6 +75,7 @@ export class AssistantMessageComponent extends Container {
 		this.markdownTheme = markdownTheme;
 		this.hiddenThinkingLabel = hiddenThinkingLabel;
 		this.assistantPaddingX = Math.max(0, Math.floor(assistantPaddingX));
+		this.promptText = promptText;
 
 		// Container for text/thinking content
 		this.contentContainer = new Container();
@@ -64,6 +109,13 @@ export class AssistantMessageComponent extends Container {
 
 	setAssistantPaddingX(padding: number): void {
 		this.assistantPaddingX = Math.max(0, Math.floor(padding));
+		if (this.lastMessage) {
+			this.updateContent(this.lastMessage);
+		}
+	}
+
+	setPromptText(promptText?: string): void {
+		this.promptText = promptText;
 		if (this.lastMessage) {
 			this.updateContent(this.lastMessage);
 		}
@@ -116,10 +168,21 @@ export class AssistantMessageComponent extends Container {
 			this.contentContainer.addChild(new Spacer(1));
 		}
 
+		let renderedResponseHeader = false;
+
 		// Render content in order
 		for (let i = 0; i < message.content.length; i++) {
 			const content = message.content[i];
 			if (content.type === "text" && content.text.trim()) {
+				if (!renderedResponseHeader) {
+					if (this.promptText?.trim()) {
+						this.contentContainer.addChild(new PromptRestatement(this.promptText, this.markdownTheme));
+					}
+					this.contentContainer.addChild(new AgentResponseBar());
+					this.contentContainer.addChild(new Spacer(1));
+					renderedResponseHeader = true;
+				}
+
 				// Assistant text messages with no background - trim the text
 				// Set paddingY=0 to avoid extra spacing before tool executions
 				this.contentContainer.addChild(

@@ -86,6 +86,26 @@ describe("AssistantMessageComponent", () => {
 		expect(contentLine?.trimEnd()).toBe("hello");
 	});
 
+	test("can restate the user prompt and render an agent response bar", () => {
+		initTheme("dark");
+
+		const component = new AssistantMessageComponent(
+			createAssistantMessage([{ type: "text", text: "Start here" }]),
+			false,
+			undefined,
+			"Thinking...",
+			1,
+			"What should I do next?",
+		);
+		const lines = component.render(40).map(stripControlSequences);
+		const promptLine = lines.find((line) => line.includes("What should I do next?"));
+		const barLine = lines.find((line) => line.includes("Agent Response"));
+
+		expect(promptLine).toBeDefined();
+		expect(barLine).toBeDefined();
+		expect(barLine).toHaveLength(40);
+	});
+
 	test("renders code fences with a full-width opaque background", () => {
 		initTheme("dark");
 

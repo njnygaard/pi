@@ -1,10 +1,23 @@
 import { describe, expect, test } from "vitest";
 import { buildSystemPrompt } from "../src/core/system-prompt.js";
 
+const defaultPromptTemplate = `Available tools:
+{{toolsList}}
+
+Guidelines:
+{{guidelines}}`;
+
+function buildTestSystemPrompt(options: Parameters<typeof buildSystemPrompt>[0]): string {
+	return buildSystemPrompt({
+		defaultPromptTemplate,
+		...options,
+	});
+}
+
 describe("buildSystemPrompt", () => {
 	describe("empty tools", () => {
 		test("shows (none) for empty tools list", () => {
-			const prompt = buildSystemPrompt({
+			const prompt = buildTestSystemPrompt({
 				selectedTools: [],
 				contextFiles: [],
 				skills: [],
@@ -15,7 +28,7 @@ describe("buildSystemPrompt", () => {
 		});
 
 		test("shows file paths guideline even with no tools", () => {
-			const prompt = buildSystemPrompt({
+			const prompt = buildTestSystemPrompt({
 				selectedTools: [],
 				contextFiles: [],
 				skills: [],
@@ -28,7 +41,7 @@ describe("buildSystemPrompt", () => {
 
 	describe("default tools", () => {
 		test("includes all default tools when snippets are provided", () => {
-			const prompt = buildSystemPrompt({
+			const prompt = buildTestSystemPrompt({
 				toolSnippets: {
 					read: "Read file contents",
 					bash: "Execute bash commands",
@@ -49,7 +62,7 @@ describe("buildSystemPrompt", () => {
 
 	describe("custom tool snippets", () => {
 		test("includes custom tools in available tools section when promptSnippet is provided", () => {
-			const prompt = buildSystemPrompt({
+			const prompt = buildTestSystemPrompt({
 				selectedTools: ["read", "dynamic_tool"],
 				toolSnippets: {
 					dynamic_tool: "Run dynamic test behavior",
@@ -63,7 +76,7 @@ describe("buildSystemPrompt", () => {
 		});
 
 		test("omits custom tools from available tools section when promptSnippet is not provided", () => {
-			const prompt = buildSystemPrompt({
+			const prompt = buildTestSystemPrompt({
 				selectedTools: ["read", "dynamic_tool"],
 				contextFiles: [],
 				skills: [],
@@ -76,7 +89,7 @@ describe("buildSystemPrompt", () => {
 
 	describe("prompt guidelines", () => {
 		test("appends promptGuidelines to default guidelines", () => {
-			const prompt = buildSystemPrompt({
+			const prompt = buildTestSystemPrompt({
 				selectedTools: ["read", "dynamic_tool"],
 				promptGuidelines: ["Use dynamic_tool for project summaries."],
 				contextFiles: [],
@@ -88,7 +101,7 @@ describe("buildSystemPrompt", () => {
 		});
 
 		test("deduplicates and trims promptGuidelines", () => {
-			const prompt = buildSystemPrompt({
+			const prompt = buildTestSystemPrompt({
 				selectedTools: ["read", "dynamic_tool"],
 				promptGuidelines: ["Use dynamic_tool for summaries.", "  Use dynamic_tool for summaries.  ", "   "],
 				contextFiles: [],

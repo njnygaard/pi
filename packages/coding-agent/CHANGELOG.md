@@ -7,6 +7,10 @@
 - Added Together AI to built-in provider setup, `/login` API-key auth, and default model resolution ([#3624](https://github.com/earendil-works/pi-mono/pull/3624) by [@Nutlope](https://github.com/Nutlope)).
 - Added settings for assistant message padding and optional footer-based thinking-level coloring.
 
+### Changed
+
+- Changed default system prompt construction to read the base prompt template from `~/.pi/agent/DEFAULT_SYSTEM.md` instead of embedding it in source.
+
 ### Fixed
 
 - Fixed hidden-thinking-to-tool-call spacing so a hidden thinking label immediately followed by a tool call does not render an extra blank row.

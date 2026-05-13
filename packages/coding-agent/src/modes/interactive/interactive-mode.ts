@@ -270,6 +270,7 @@ export class InteractiveMode {
 	// Streaming message tracking
 	private streamingComponent: AssistantMessageComponent | undefined = undefined;
 	private streamingMessage: AssistantMessage | undefined = undefined;
+	private lastUserPromptText: string | undefined = undefined;
 
 	// Tool execution tracking: toolCallId -> component
 	private pendingTools = new Map<string, ToolExecutionComponent>();
@@ -2712,6 +2713,7 @@ export class InteractiveMode {
 						this.getMarkdownThemeWithSettings(),
 						this.hiddenThinkingLabel,
 						this.getAssistantMessagePaddingX(),
+						this.lastUserPromptText,
 					);
 					this.streamingMessage = event.message;
 					this.chatContainer.addChild(this.streamingComponent);
@@ -3056,6 +3058,7 @@ export class InteractiveMode {
 			}
 			case "user": {
 				const textContent = this.getUserMessageText(message);
+				this.lastUserPromptText = textContent || undefined;
 				if (textContent) {
 					if (this.chatContainer.children.length > 0) {
 						this.chatContainer.addChild(new Spacer(1));
@@ -3094,6 +3097,7 @@ export class InteractiveMode {
 					this.getMarkdownThemeWithSettings(),
 					this.hiddenThinkingLabel,
 					this.getAssistantMessagePaddingX(),
+					this.lastUserPromptText,
 				);
 				this.chatContainer.addChild(assistantComponent);
 				break;

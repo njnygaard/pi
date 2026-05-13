@@ -306,7 +306,7 @@ Disable context file loading with `--no-context-files` (or `-nc`).
 
 ### System Prompt
 
-Replace the default system prompt with `.pi/SYSTEM.md` (project) or `~/.pi/agent/SYSTEM.md` (global). Append without replacing via `APPEND_SYSTEM.md`.
+Pi reads the default system prompt template from `~/.pi/agent/DEFAULT_SYSTEM.md`. The template supports `{{toolsList}}`, `{{guidelines}}`, `{{readmePath}}`, `{{docsPath}}`, and `{{examplesPath}}`. Replace it with `.pi/SYSTEM.md` (project) or `~/.pi/agent/SYSTEM.md` (global). Append without replacing via `APPEND_SYSTEM.md`.
 
 ---
 
