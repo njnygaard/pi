@@ -1,8 +1,8 @@
 import { type Component, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { AgentSession } from "../../../core/agent-session.js";
-import type { ReadonlyFooterDataProvider } from "../../../core/footer-data-provider.js";
-import type { ThinkingLevelIndicatorSetting } from "../../../core/settings-manager.js";
-import { theme } from "../theme/theme.js";
+import type { AgentSession } from "../../../core/agent-session.ts";
+import type { ReadonlyFooterDataProvider } from "../../../core/footer-data-provider.ts";
+import type { ThinkingLevelIndicatorSetting } from "../../../core/settings-manager.ts";
+import { theme } from "../theme/theme.ts";
 
 /**
  * Sanitize text for display in a single-line status.
@@ -34,12 +34,16 @@ function formatTokens(count: number): string {
 export class FooterComponent implements Component {
 	private autoCompactEnabled = true;
 	private thinkingLevelIndicator: ThinkingLevelIndicatorSetting = "editorBorder";
+	private session: AgentSession;
+	private footerData: ReadonlyFooterDataProvider;
 
 	constructor(
-		private session: AgentSession,
-		private footerData: ReadonlyFooterDataProvider,
+		session: AgentSession,
+		footerData: ReadonlyFooterDataProvider,
 		thinkingLevelIndicator: ThinkingLevelIndicatorSetting = "editorBorder",
 	) {
+		this.session = session;
+		this.footerData = footerData;
 		this.thinkingLevelIndicator = thinkingLevelIndicator;
 	}
 

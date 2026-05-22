@@ -4,8 +4,8 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAgentDir, getDocsPath, getExamplesPath, getReadmePath } from "../config.js";
-import { formatSkillsForPrompt, type Skill } from "./skills.js";
+import { getAgentDir, getDocsPath, getExamplesPath, getReadmePath } from "../config.ts";
+import { formatSkillsForPrompt, type Skill } from "./skills.ts";
 
 export interface BuildSystemPromptOptions {
 	/** Custom system prompt (replaces default). */
