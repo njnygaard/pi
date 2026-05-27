@@ -124,6 +124,12 @@ export interface StreamOptions {
 	 */
 	timeoutMs?: number;
 	/**
+	 * WebSocket connect timeout in milliseconds for providers that support
+	 * WebSocket transports. This covers the connection/open handshake only;
+	 * stream idleness after connection uses timeoutMs.
+	 */
+	websocketConnectTimeoutMs?: number;
+	/**
 	 * Maximum retry attempts for providers/SDKs that support client-side retries.
 	 * For example, OpenAI and Anthropic SDK clients default to 2.
 	 */
@@ -435,6 +441,16 @@ export interface AnthropicMessagesCompat {
 	 * Default: true.
 	 */
 	supportsCacheControlOnTools?: boolean;
+	/**
+	 * Whether to force adaptive thinking (`thinking.type: "adaptive"` plus
+	 * `output_config.effort`) regardless of the model id. Built-in models that
+	 * require adaptive thinking set this in generated metadata. Custom
+	 * Anthropic-compatible providers can set this to `true` for any model whose
+	 * upstream requires the adaptive format. Set to `false` to
+	 * opt out on overridden built-in models.
+	 * Default: false.
+	 */
+	forceAdaptiveThinking?: boolean;
 }
 
 /**

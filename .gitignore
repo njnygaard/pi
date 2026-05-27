@@ -40,5 +40,3 @@ plans/
 .pi/hf-sessions-backup/
 collect.sh
 .nvim.shada
-packages/ai/src/image-models.generated.ts
-packages/ai/src/models.generated.ts

@@ -3,6 +3,7 @@ import { homedir } from "os";
 import { basename, dirname, join, resolve, sep, win32 } from "path";
 import { fileURLToPath } from "url";
 import { spawnProcessSync } from "./utils/child-process.ts";
+import { normalizePath } from "./utils/paths.ts";
 
 // =============================================================================
 // Package Detection
@@ -110,7 +111,13 @@ function getSelfUpdateCommandForMethod(
 			return undefined;
 		case "pnpm":
 			return makeSelfUpdateCommand(
-				makeSelfUpdateCommandStep("pnpm", ["install", "-g", "--ignore-scripts", updatePackageName]),
+				makeSelfUpdateCommandStep("pnpm", [
+					"install",
+					"-g",
+					"--ignore-scripts",
+					"--config.minimumReleaseAge=0",
+					updatePackageName,
+				]),
 				updatePackageName === installedPackageName
 					? undefined
 					: makeSelfUpdateCommandStep("pnpm", ["remove", "-g", installedPackageName]),
@@ -124,7 +131,13 @@ function getSelfUpdateCommandForMethod(
 			);
 		case "bun":
 			return makeSelfUpdateCommand(
-				makeSelfUpdateCommandStep("bun", ["install", "-g", "--ignore-scripts", updatePackageName]),
+				makeSelfUpdateCommandStep("bun", [
+					"install",
+					"-g",
+					"--ignore-scripts",
+					"--minimum-release-age=0",
+					updatePackageName,
+				]),
 				updatePackageName === installedPackageName
 					? undefined
 					: makeSelfUpdateCommandStep("bun", ["uninstall", "-g", installedPackageName]),
@@ -138,6 +151,7 @@ function getSelfUpdateCommandForMethod(
 				"install",
 				"-g",
 				"--ignore-scripts",
+				"--min-release-age=0",
 				updatePackageName,
 			]);
 			const uninstallStep =
@@ -330,9 +344,7 @@ export function getPackageDir(): string {
 	// Allow override via environment variable (useful for Nix/Guix where store paths tokenize poorly)
 	const envDir = process.env.PI_PACKAGE_DIR;
 	if (envDir) {
-		if (envDir === "~") return homedir();
-		if (envDir.startsWith("~/")) return homedir() + envDir.slice(1);
-		return envDir;
+		return normalizePath(envDir);
 	}
 
 	if (isBunBinary) {
@@ -454,9 +466,7 @@ export const ENV_AGENT_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`;
 export const ENV_SESSION_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_SESSION_DIR`;
 
 export function expandTildePath(path: string): string {
-	if (path === "~") return homedir();
-	if (path.startsWith("~/")) return homedir() + path.slice(1);
-	return path;
+	return normalizePath(path);
 }
 
 const DEFAULT_SHARE_VIEWER_URL = "https://pi.dev/session/";
