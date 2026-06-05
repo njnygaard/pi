@@ -228,7 +228,39 @@ export class ToolExecutionComponent extends Container {
 		if (this.hideComponent) {
 			return [];
 		}
-		let lines = super.render(width);
+
+		let lines: string[];
+		if (this.hasRendererDefinition() && this.getRenderShell() === "self") {
+			const contentLines = this.selfRenderContainer.render(width);
+			if (contentLines.length === 0 && this.imageComponents.length === 0) {
+				return [];
+			}
+
+			lines = [];
+			if (contentLines.length > 0) {
+				if (this.leadingSpacer) {
+					lines.push("");
+				}
+				lines.push(...contentLines);
+			}
+			for (let i = 0; i < this.imageComponents.length; i++) {
+				const spacer = this.imageSpacers[i];
+				if (spacer) {
+					lines.push(...spacer.render(width));
+				}
+				const imageComponent = this.imageComponents[i];
+				if (imageComponent) {
+					lines.push(...imageComponent.render(width));
+				}
+			}
+		} else {
+			lines = super.render(width);
+		}
+
+		return this.trimRenderedLines(lines);
+	}
+
+	private trimRenderedLines(lines: string[]): string[] {
 		const isBlankLine = (line: string | undefined): boolean => stripAnsi(line ?? "").trim() === "";
 		if (!this.leadingSpacer) {
 			while (lines.length > 0 && isBlankLine(lines[0])) {

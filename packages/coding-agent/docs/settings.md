@@ -47,7 +47,7 @@ Edit directly or use `/settings` for common options.
 | `treeFilterMode` | string | `"default"` | Default filter for `/tree`: `"default"`, `"no-tools"`, `"user-only"`, `"labeled-only"`, `"all"` |
 | `editorPaddingX` | number | `0` | Horizontal padding for input editor (0-3) |
 | `autocompleteMaxVisible` | number | `5` | Max visible items in autocomplete dropdown (3-20) |
-| `showHardwareCursor` | boolean | `false` | Show terminal cursor |
+| `showHardwareCursor` | boolean | `false` | Show the terminal cursor while TUI positions it for IME support |
 | `ui.editorBorderColor` | string | - | Theme foreground color token for a static input editor border when `ui.thinkingLevelIndicator` is `"footerModel"` |
 | `ui.thinkingLevelIndicator` | string | `"editorBorder"` | Where thinking-level color is shown: `"editorBorder"` (default) or `"footerModel"` |
 
