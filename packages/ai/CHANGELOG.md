@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
+## [0.79.4] - 2026-06-15
+
 ### Fixed
 
+- Fixed Anthropic 1-hour prompt-cache write cost accounting to price 1-hour cache writes at 2x input instead of the 5-minute cache-write rate ([#5738](https://github.com/earendil-works/pi/pull/5738) by [@theBucky](https://github.com/theBucky)).
+- Fixed GitHub Copilot Claude adaptive-thinking effort metadata to match manually checked Copilot model capabilities ([#4637](https://github.com/earendil-works/pi/issues/4637)).
 - Fixed OpenCode/OpenCode Go completion models that reject `prompt_cache_retention` to omit long-retention cache fields when `cacheRetention` is `long` ([#5702](https://github.com/earendil-works/pi/issues/5702)).
 
 ## [0.79.3] - 2026-06-13
