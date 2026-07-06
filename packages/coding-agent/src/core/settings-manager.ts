@@ -52,7 +52,6 @@ export interface ThinkingBudgetsSettings {
 
 export interface MarkdownSettings {
 	codeBlockIndent?: string; // default: "  "
-	assistantMessagePaddingX?: number; // default: 1
 }
 
 export type ThinkingLevelIndicatorSetting = "editorBorder" | "footerModel";
@@ -98,6 +97,7 @@ export interface Settings {
 	branchSummary?: BranchSummarySettings;
 	retry?: RetrySettings;
 	hideThinkingBlock?: boolean;
+	externalEditor?: string; // Command for Ctrl+G external editor; takes precedence over VISUAL/EDITOR
 	shellPath?: string; // Custom shell path (e.g., for Cygwin users on Windows)
 	quietStartup?: boolean;
 	defaultProjectTrust?: DefaultProjectTrust; // default: "ask"; global setting only
@@ -121,6 +121,7 @@ export interface Settings {
 	treeFilterMode?: "default" | "no-tools" | "user-only" | "labeled-only" | "all"; // Default filter when opening /tree
 	thinkingBudgets?: ThinkingBudgetsSettings; // Custom token budgets for thinking levels
 	editorPaddingX?: number; // Horizontal padding for input editor (default: 0)
+	outputPad?: 0 | 1; // Horizontal padding for chat message output (default: 1)
 	autocompleteMaxVisible?: number; // Max visible items in autocomplete dropdown (default: 5)
 	showHardwareCursor?: boolean; // Show terminal cursor while still positioning it for IME
 	markdown?: MarkdownSettings;
@@ -851,6 +852,18 @@ export class SettingsManager {
 		return this.settings.hideThinkingBlock ?? false;
 	}
 
+	getExternalEditorCommand(): string | undefined {
+		const configuredEditor = this.settings.externalEditor;
+		if (typeof configuredEditor === "string" && configuredEditor.trim() !== "") {
+			return configuredEditor;
+		}
+		const environmentEditor = process.env.VISUAL || process.env.EDITOR;
+		if (environmentEditor) {
+			return environmentEditor;
+		}
+		return process.platform === "win32" ? "notepad" : "nano";
+	}
+
 	setHideThinkingBlock(hide: boolean): void {
 		this.globalSettings.hideThinkingBlock = hide;
 		this.markModified("hideThinkingBlock");
@@ -1189,6 +1202,16 @@ export class SettingsManager {
 		this.save();
 	}
 
+	getOutputPad(): 0 | 1 {
+		return this.settings.outputPad === 0 ? 0 : 1;
+	}
+
+	setOutputPad(padding: 0 | 1): void {
+		this.globalSettings.outputPad = padding;
+		this.markModified("outputPad");
+		this.save();
+	}
+
 	getAutocompleteMaxVisible(): number {
 		return this.settings.autocompleteMaxVisible ?? 5;
 	}
@@ -1201,14 +1224,6 @@ export class SettingsManager {
 
 	getCodeBlockIndent(): string {
 		return this.settings.markdown?.codeBlockIndent ?? "  ";
-	}
-
-	getAssistantMessagePaddingX(): number {
-		const padding = this.settings.markdown?.assistantMessagePaddingX;
-		if (typeof padding !== "number" || !Number.isFinite(padding)) {
-			return 1;
-		}
-		return Math.max(0, Math.min(3, Math.floor(padding)));
 	}
 
 	getThinkingLevelIndicator(): ThinkingLevelIndicatorSetting {

@@ -36,9 +36,9 @@ class AgentResponseBar implements Component {
 }
 
 class PromptRestatement extends Container {
-	constructor(promptText: string, markdownTheme: MarkdownTheme) {
+	constructor(promptText: string, markdownTheme: MarkdownTheme, outputPad: number) {
 		super();
-		const box = new Box(1, 1, (content: string) => theme.bg("userMessageBg", content));
+		const box = new Box(outputPad, 1, (content: string) => theme.bg("userMessageBg", content));
 		box.addChild(
 			new Markdown(promptText.trim(), 0, 0, markdownTheme, {
 				color: (content: string) => theme.fg("userMessageText", content),
@@ -56,7 +56,7 @@ export class AssistantMessageComponent extends Container {
 	private hideThinkingBlock: boolean;
 	private markdownTheme: MarkdownTheme;
 	private hiddenThinkingLabel: string;
-	private assistantPaddingX: number;
+	private outputPad: number;
 	private promptText?: string;
 	private lastMessage?: AssistantMessage;
 	private hasToolCalls = false;
@@ -66,7 +66,7 @@ export class AssistantMessageComponent extends Container {
 		hideThinkingBlock = false,
 		markdownTheme: MarkdownTheme = getMarkdownTheme(),
 		hiddenThinkingLabel = "Thinking...",
-		assistantPaddingX = 1,
+		outputPad = 1,
 		promptText?: string,
 	) {
 		super();
@@ -74,7 +74,7 @@ export class AssistantMessageComponent extends Container {
 		this.hideThinkingBlock = hideThinkingBlock;
 		this.markdownTheme = markdownTheme;
 		this.hiddenThinkingLabel = hiddenThinkingLabel;
-		this.assistantPaddingX = Math.max(0, Math.floor(assistantPaddingX));
+		this.outputPad = Math.max(0, Math.floor(outputPad));
 		this.promptText = promptText;
 
 		// Container for text/thinking content
@@ -107,8 +107,8 @@ export class AssistantMessageComponent extends Container {
 		}
 	}
 
-	setAssistantPaddingX(padding: number): void {
-		this.assistantPaddingX = Math.max(0, Math.floor(padding));
+	setOutputPad(padding: number): void {
+		this.outputPad = Math.max(0, Math.floor(padding));
 		if (this.lastMessage) {
 			this.updateContent(this.lastMessage);
 		}
@@ -176,7 +176,9 @@ export class AssistantMessageComponent extends Container {
 			if (content.type === "text" && content.text.trim()) {
 				if (!renderedResponseHeader) {
 					if (this.promptText?.trim()) {
-						this.contentContainer.addChild(new PromptRestatement(this.promptText, this.markdownTheme));
+						this.contentContainer.addChild(
+							new PromptRestatement(this.promptText, this.markdownTheme, this.outputPad),
+						);
 					}
 					this.contentContainer.addChild(new AgentResponseBar());
 					this.contentContainer.addChild(new Spacer(1));
@@ -185,9 +187,7 @@ export class AssistantMessageComponent extends Container {
 
 				// Assistant text messages with no background - trim the text
 				// Set paddingY=0 to avoid extra spacing before tool executions
-				this.contentContainer.addChild(
-					new Markdown(content.text.trim(), this.assistantPaddingX, 0, this.markdownTheme),
-				);
+				this.contentContainer.addChild(new Markdown(content.text.trim(), this.outputPad, 0, this.markdownTheme));
 			} else if (content.type === "thinking" && content.thinking.trim()) {
 				// Add spacing only when another visible assistant content block follows.
 				// This avoids a superfluous blank line before separately-rendered tool execution blocks.
@@ -198,7 +198,7 @@ export class AssistantMessageComponent extends Container {
 				if (this.hideThinkingBlock) {
 					// Show static thinking label when hidden
 					this.contentContainer.addChild(
-						new Text(theme.italic(theme.fg("thinkingText", this.hiddenThinkingLabel)), this.assistantPaddingX, 0),
+						new Text(theme.italic(theme.fg("thinkingText", this.hiddenThinkingLabel)), this.outputPad, 0),
 					);
 					if (hasVisibleContentAfter) {
 						this.contentContainer.addChild(new Spacer(1));
@@ -206,7 +206,7 @@ export class AssistantMessageComponent extends Container {
 				} else {
 					// Thinking traces in thinkingText color, italic
 					this.contentContainer.addChild(
-						new Markdown(content.thinking.trim(), this.assistantPaddingX, 0, this.markdownTheme, {
+						new Markdown(content.thinking.trim(), this.outputPad, 0, this.markdownTheme, {
 							color: (text: string) => theme.fg("thinkingText", text),
 							italic: true,
 						}),
@@ -218,28 +218,35 @@ export class AssistantMessageComponent extends Container {
 			}
 		}
 
-		// Check if aborted - show after partial content
-		// But only if there are no tool calls (tool execution components will show the error)
+		// Check if incomplete/failed - show after partial content.
+		// For aborted/error tool calls, tool execution components show the error.
+		// Length stops can happen before a tool call is complete, so surface them here too.
 		const hasToolCalls = message.content.some((c) => c.type === "toolCall");
 		this.hasToolCalls = hasToolCalls;
-		if (!hasToolCalls) {
+		if (message.stopReason === "length") {
+			this.contentContainer.addChild(new Spacer(1));
+			this.contentContainer.addChild(
+				new Text(
+					theme.fg(
+						"error",
+						"Error: Model stopped because it reached the maximum output token limit. The response may be incomplete.",
+					),
+					this.outputPad,
+					0,
+				),
+			);
+		} else if (!hasToolCalls) {
 			if (message.stopReason === "aborted") {
 				const abortMessage =
 					message.errorMessage && message.errorMessage !== "Request was aborted"
 						? message.errorMessage
 						: "Operation aborted";
-				if (hasVisibleContent) {
-					this.contentContainer.addChild(new Spacer(1));
-				} else {
-					this.contentContainer.addChild(new Spacer(1));
-				}
-				this.contentContainer.addChild(new Text(theme.fg("error", abortMessage), this.assistantPaddingX, 0));
+				this.contentContainer.addChild(new Spacer(1));
+				this.contentContainer.addChild(new Text(theme.fg("error", abortMessage), this.outputPad, 0));
 			} else if (message.stopReason === "error") {
 				const errorMsg = message.errorMessage || "Unknown error";
 				this.contentContainer.addChild(new Spacer(1));
-				this.contentContainer.addChild(
-					new Text(theme.fg("error", `Error: ${errorMsg}`), this.assistantPaddingX, 0),
-				);
+				this.contentContainer.addChild(new Text(theme.fg("error", `Error: ${errorMsg}`), this.outputPad, 0));
 			}
 		}
 	}

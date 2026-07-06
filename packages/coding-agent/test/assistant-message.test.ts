@@ -3,6 +3,7 @@ import type { TUI } from "@earendil-works/pi-tui";
 import { describe, expect, test } from "vitest";
 import { AssistantMessageComponent } from "../src/modes/interactive/components/assistant-message.ts";
 import { ToolExecutionComponent } from "../src/modes/interactive/components/tool-execution.ts";
+import { UserMessageComponent } from "../src/modes/interactive/components/user-message.ts";
 import { initTheme, theme } from "../src/modes/interactive/theme/theme.ts";
 import { stripAnsi } from "../src/utils/ansi.ts";
 
@@ -20,7 +21,10 @@ function createFakeTui(): TUI {
 	} as unknown as TUI;
 }
 
-function createAssistantMessage(content: AssistantMessage["content"]): AssistantMessage {
+function createAssistantMessage(
+	content: AssistantMessage["content"],
+	overrides: Partial<Pick<AssistantMessage, "stopReason">> = {},
+): AssistantMessage {
 	return {
 		role: "assistant",
 		content,
@@ -35,7 +39,7 @@ function createAssistantMessage(content: AssistantMessage["content"]): Assistant
 			totalTokens: 0,
 			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 		},
-		stopReason: "stop",
+		stopReason: overrides.stopReason ?? "stop",
 		timestamp: Date.now(),
 	};
 }
@@ -68,22 +72,54 @@ describe("AssistantMessageComponent", () => {
 		expect(rendered.includes(OSC133_ZONE_FINAL)).toBe(false);
 	});
 
-	test("respects assistant message horizontal padding", () => {
+	test("renders length stops as visible errors", () => {
 		initTheme("dark");
 
 		const component = new AssistantMessageComponent(
-			createAssistantMessage([{ type: "text", text: "hello" }]),
+			createAssistantMessage([{ type: "thinking", thinking: "private reasoning" }], { stopReason: "length" }),
+			true,
+		);
+		const rendered = component.render(80).join("\n");
+
+		expect(rendered).toContain("Thinking...");
+		expect(rendered).toContain("maximum output token limit");
+		expect(rendered).toContain("response may be incomplete");
+	});
+
+	test("uses configured output padding for text and thinking", () => {
+		initTheme("dark");
+
+		const component = new AssistantMessageComponent(
+			createAssistantMessage([
+				{ type: "text", text: "hello" },
+				{ type: "thinking", thinking: "reasoning" },
+			]),
 			false,
 			undefined,
 			"Thinking...",
-			0,
+			1,
 		);
-		const contentLine = component
-			.render(40)
-			.map(stripControlSequences)
-			.find((line) => line.includes("hello"));
+		const lines = component.render(80).map(stripControlSequences);
 
-		expect(contentLine?.trimEnd()).toBe("hello");
+		expect(lines.some((line) => line.includes(" hello"))).toBe(true);
+		expect(lines.some((line) => line.includes(" reasoning"))).toBe(true);
+
+		component.setOutputPad(0);
+		const updatedLines = component.render(80).map(stripControlSequences);
+		expect(updatedLines.some((line) => line.startsWith("hello"))).toBe(true);
+		expect(updatedLines.some((line) => line.startsWith("reasoning"))).toBe(true);
+	});
+
+	test("uses configured output padding for user messages", () => {
+		initTheme("dark");
+
+		const paddedComponent = new UserMessageComponent("hello", undefined, 1);
+		const paddedLines = paddedComponent.render(40).map(stripControlSequences);
+		expect(paddedLines.some((line) => line.startsWith(" hello"))).toBe(true);
+
+		const unpaddedComponent = new UserMessageComponent("hello", undefined, 0);
+		const unpaddedLines = unpaddedComponent.render(40).map(stripControlSequences);
+		expect(unpaddedLines.some((line) => line.startsWith("hello"))).toBe(true);
 	});
 
 	test("can restate the user prompt and render an agent response bar", () => {
@@ -94,7 +130,7 @@ describe("AssistantMessageComponent", () => {
 			false,
 			undefined,
 			"Thinking...",
-			1,
+			0,
 			"What should I do next?",
 		);
 		const lines = component.render(40).map(stripControlSequences);
@@ -102,6 +138,7 @@ describe("AssistantMessageComponent", () => {
 		const barLine = lines.find((line) => line.includes("Agent Response"));
 
 		expect(promptLine).toBeDefined();
+		expect(promptLine?.startsWith("What should I do next?")).toBe(true);
 		expect(barLine).toBeDefined();
 		expect(barLine).toHaveLength(40);
 	});
