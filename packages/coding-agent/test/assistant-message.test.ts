@@ -23,7 +23,7 @@ function createFakeTui(): TUI {
 
 function createAssistantMessage(
 	content: AssistantMessage["content"],
-	overrides: Partial<Pick<AssistantMessage, "stopReason">> = {},
+	overrides: Partial<Pick<AssistantMessage, "stopReason" | "timestamp">> = {},
 ): AssistantMessage {
 	return {
 		role: "assistant",
@@ -40,7 +40,7 @@ function createAssistantMessage(
 			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 		},
 		stopReason: overrides.stopReason ?? "stop",
-		timestamp: Date.now(),
+		timestamp: overrides.timestamp ?? Date.now(),
 	};
 }
 
@@ -125,22 +125,27 @@ describe("AssistantMessageComponent", () => {
 	test("can restate the user prompt and render an agent response bar", () => {
 		initTheme("dark");
 
+		const timestamp = new Date(2026, 6, 22, 8, 51, 0).getTime();
+		const offsetMinutes = -new Date(timestamp).getTimezoneOffset();
+		const offsetSign = offsetMinutes >= 0 ? "+" : "-";
+		const offsetHours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, "0");
+		const offsetRemainder = String(Math.abs(offsetMinutes) % 60).padStart(2, "0");
 		const component = new AssistantMessageComponent(
-			createAssistantMessage([{ type: "text", text: "Start here" }]),
+			createAssistantMessage([{ type: "text", text: "Start here" }], { timestamp }),
 			false,
 			undefined,
 			"Thinking...",
 			0,
 			"What should I do next?",
 		);
-		const lines = component.render(40).map(stripControlSequences);
+		const lines = component.render(80).map(stripControlSequences);
 		const promptLine = lines.find((line) => line.includes("What should I do next?"));
 		const barLine = lines.find((line) => line.includes("Agent Response"));
 
 		expect(promptLine).toBeDefined();
 		expect(promptLine?.startsWith("What should I do next?")).toBe(true);
-		expect(barLine).toBeDefined();
-		expect(barLine).toHaveLength(40);
+		expect(barLine).toContain(`Agent Response - 2026-07-22T08:51:00${offsetSign}${offsetHours}:${offsetRemainder}`);
+		expect(barLine).toHaveLength(80);
 	});
 
 	test("renders code fences with a full-width opaque background", () => {

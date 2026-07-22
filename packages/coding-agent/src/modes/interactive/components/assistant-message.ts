@@ -16,14 +16,29 @@ const OSC133_ZONE_START = "\x1b]133;A\x07";
 const OSC133_ZONE_END = "\x1b]133;B\x07";
 const OSC133_ZONE_FINAL = "\x1b]133;C\x07";
 
+function formatLocalIsoTimestamp(timestamp: number): string {
+	const date = new Date(timestamp);
+	const pad = (value: number): string => String(value).padStart(2, "0");
+	const offsetMinutes = -date.getTimezoneOffset();
+	const offsetSign = offsetMinutes >= 0 ? "+" : "-";
+	const absoluteOffset = Math.abs(offsetMinutes);
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${offsetSign}${pad(Math.floor(absoluteOffset / 60))}:${pad(absoluteOffset % 60)}`;
+}
+
 class AgentResponseBar implements Component {
+	private readonly timestamp: string;
+
+	constructor(timestamp: string) {
+		this.timestamp = timestamp;
+	}
+
 	invalidate(): void {
 		// No cached state to invalidate currently
 	}
 
 	render(width: number): string[] {
 		const safeWidth = Math.max(1, width);
-		const label = " Agent Response ";
+		const label = ` Agent Response - ${this.timestamp} `;
 		const base =
 			visibleWidth(label) >= safeWidth
 				? truncateToWidth(label, safeWidth, "")
@@ -180,7 +195,7 @@ export class AssistantMessageComponent extends Container {
 							new PromptRestatement(this.promptText, this.markdownTheme, this.outputPad),
 						);
 					}
-					this.contentContainer.addChild(new AgentResponseBar());
+					this.contentContainer.addChild(new AgentResponseBar(formatLocalIsoTimestamp(message.timestamp)));
 					this.contentContainer.addChild(new Spacer(1));
 					renderedResponseHeader = true;
 				}
