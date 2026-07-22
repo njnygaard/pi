@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildSystemPrompt } from "../src/core/system-prompt.ts";
 
@@ -37,6 +39,18 @@ describe("buildSystemPrompt", () => {
 
 			expect(prompt).toContain("Show file paths clearly");
 		});
+	});
+
+	test("falls back to the bundled template when the agent config has none", () => {
+		const prompt = buildSystemPrompt({
+			agentDir: join(tmpdir(), "pi-missing-default-system-template"),
+			contextFiles: [],
+			skills: [],
+			cwd: process.cwd(),
+		});
+
+		expect(prompt).toContain("You are an expert coding assistant operating inside pi");
+		expect(prompt).toContain("Pi documentation");
 	});
 
 	describe("default tools", () => {

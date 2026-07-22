@@ -32,6 +32,25 @@ export interface BuildSystemPromptOptions {
 
 export const DEFAULT_SYSTEM_PROMPT_FILENAME = "DEFAULT_SYSTEM.md";
 
+const FALLBACK_DEFAULT_PROMPT_TEMPLATE = `You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
+
+Available tools:
+{{toolsList}}
+
+In addition to the tools above, you may have access to other custom tools depending on the project.
+
+Guidelines:
+{{guidelines}}
+
+Pi documentation (read only when the user asks about pi itself, its SDK, extensions, themes, skills, or TUI):
+- Main documentation: {{readmePath}}
+- Additional docs: {{docsPath}}
+- Examples: {{examplesPath}} (extensions, custom tools, SDK)
+- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory
+- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), pi packages (docs/packages.md)
+- When working on pi topics, read the docs and examples, and follow .md cross-references before implementing
+- Always read pi .md files completely and follow links to related docs (e.g., tui.md for TUI API details)`;
+
 function loadDefaultPromptTemplate(options: BuildSystemPromptOptions): string {
 	if (options.defaultPromptTemplate !== undefined) {
 		return options.defaultPromptTemplate.trimEnd();
@@ -40,10 +59,7 @@ function loadDefaultPromptTemplate(options: BuildSystemPromptOptions): string {
 	const agentDir = options.agentDir ?? getAgentDir();
 	const filePath = join(agentDir, DEFAULT_SYSTEM_PROMPT_FILENAME);
 	if (!existsSync(filePath)) {
-		throw new Error(
-			`Default system prompt template not found at ${filePath}. ` +
-				`Create ${DEFAULT_SYSTEM_PROMPT_FILENAME} in the agent config directory or provide a custom system prompt.`,
-		);
+		return FALLBACK_DEFAULT_PROMPT_TEMPLATE;
 	}
 
 	return readFileSync(filePath, "utf-8").trimEnd();
@@ -69,14 +85,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 		contextFiles: providedContextFiles,
 		skills: providedSkills,
 	} = options;
-	const resolvedCwd = cwd;
-	const promptCwd = resolvedCwd.replace(/\\/g, "/");
-
-	const now = new Date();
-	const year = now.getFullYear();
-	const month = String(now.getMonth() + 1).padStart(2, "0");
-	const day = String(now.getDate()).padStart(2, "0");
-	const date = `${year}-${month}-${day}`;
+	const promptCwd = cwd.replace(/\\/g, "/");
 
 	const appendSection = appendSystemPrompt ? `\n\n${appendSystemPrompt}` : "";
 
@@ -106,8 +115,6 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 			prompt += formatSkillsForPrompt(skills);
 		}
 
-		// Add date and working directory last
-		prompt += `\nCurrent date: ${date}`;
 		prompt += `\nCurrent working directory: ${promptCwd}`;
 
 		return prompt;
@@ -187,8 +194,6 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 		prompt += formatSkillsForPrompt(skills);
 	}
 
-	// Add date and working directory last
-	prompt += `\nCurrent date: ${date}`;
 	prompt += `\nCurrent working directory: ${promptCwd}`;
 
 	return prompt;
