@@ -69,6 +69,7 @@ Use `/trust` in interactive mode to save a project trust decision for future ses
 | `ui.editorBorderColor` | string | - | Theme foreground color token for a static input editor border when `ui.thinkingLevelIndicator` is `"footerModel"` |
 | `ui.thinkingLevelIndicator` | string | `"editorBorder"` | Where thinking-level color is shown: `"editorBorder"` (default) or `"footerModel"` |
 | `uiMode` | string | `"regular"` | Interactive UI mode: `"regular"` or experimental `"fullscreen"`. Changes from `/settings` apply after restart; `--ui-mode` overrides this setting for one run |
+| `fullscreenScrollbar` | string | `"auto"` | Fullscreen transcript scrollbar: `"auto"` shows it temporarily while scrolling, `"always"` reserves the rightmost column and keeps it visible, and `"hidden"` hides it. Has no effect in regular UI mode |
 
 For VS Code, include `--wait` so pi resumes after the editor exits:
 
