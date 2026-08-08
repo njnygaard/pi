@@ -5,6 +5,7 @@ import { ScrollView } from "../src/components/scroll-view.ts";
 import { Text } from "../src/components/text.ts";
 import { VStack } from "../src/components/v-stack.ts";
 import { renderLayoutFrame } from "../src/layout.ts";
+import { encodeKitty, registerKittyImageMetadata } from "../src/terminal-image.ts";
 import { stripTerminalSequences } from "../src/utils.ts";
 
 function visibleLines(lines: string[]): string[] {
@@ -30,6 +31,43 @@ describe("viewport layout", () => {
 		assert.deepStrictEqual(visibleLines(frame.lines), ["top", "body", "", ""]);
 	});
 
+	it("does not render fixed-basis scroll content during stack measurement", () => {
+		let renderCount = 0;
+		const transcript = new ScrollView({
+			render: () => {
+				renderCount += 1;
+				return ["one", "two", "three"];
+			},
+			invalidate: () => {},
+		});
+		const root = new VStack([
+			{ component: transcript, basis: 0, grow: 1 },
+			{ component: new Text("dock", 0, 0), basis: "auto" },
+		]);
+		renderLayoutFrame(root, 10, 3, () => {});
+		assert.strictEqual(renderCount, 1);
+	});
+
+	it("paints only clipped rows from very large scroll content", () => {
+		const lineCount = 1_000_000_000;
+		const lines: string[] = [];
+		lines.length = lineCount;
+		lines[lineCount - 4] = "before";
+		lines[lineCount - 3] = "visible 1";
+		lines[lineCount - 2] = "visible 2";
+		lines[lineCount - 1] = "visible 3";
+		const transcript = new ScrollView(
+			{
+				render: () => lines,
+				invalidate: () => {},
+			},
+			{ follow: "end" },
+		);
+
+		const frame = renderLayoutFrame(transcript, 10, 3, () => {});
+		assert.deepStrictEqual(visibleLines(frame.lines), ["visible 1", "visible 2", "visible 3"]);
+	});
+
 	it("shrinks entries to their minimum sizes", () => {
 		const frame = renderLayoutFrame(
 			new VStack([
@@ -48,6 +86,36 @@ describe("viewport layout", () => {
 		assert.deepStrictEqual(visibleLines(frame.lines), ["a1", "b1", "b2", "b3"]);
 	});
 
+	it("includes nested minimum sizes in intrinsic stack measurement", () => {
+		const dock = new VStack([
+			new Text("top1\ntop2\ntop3", 0, 0),
+			{ component: new Text("selector", 0, 0), minSize: 3 },
+			new Text("below", 0, 0),
+			{ component: new Text("footer", 0, 0), minSize: 1 },
+		]);
+		const frame = renderLayoutFrame(
+			new VStack([
+				{ component: new Text("body", 0, 0), basis: 0, grow: 1, minSize: 1 },
+				{ component: dock, basis: "auto", minSize: 1 },
+			]),
+			10,
+			9,
+			() => {},
+		);
+
+		assert.deepStrictEqual(visibleLines(frame.lines), [
+			"body",
+			"top1",
+			"top2",
+			"top3",
+			"selector",
+			"",
+			"",
+			"below",
+			"footer",
+		]);
+	});
+
 	it("omits gaps around invisible entries", () => {
 		const stack = new VStack(
 			[new Text("one", 0, 0), { component: new Text("hidden", 0, 0), visible: () => false }, new Text("two", 0, 0)],
@@ -57,6 +125,24 @@ describe("viewport layout", () => {
 			stack.render(10).map((line) => line.trimEnd()),
 			["one", "", "two"],
 		);
+	});
+
+	it("crops Kitty images at a scroll view's lower boundary", () => {
+		const imageId = 124;
+		const imageLine = encodeKitty("AAAA", { columns: 2, rows: 3, imageId, moveCursor: false });
+		registerKittyImageMetadata({ imageId, columns: 2, rows: 3, widthPx: 100, heightPx: 100 });
+		const transcript = new ScrollView({
+			render: () => ["one", "two", imageLine, "", ""],
+			invalidate: () => {},
+		});
+		const frame = renderLayoutFrame(
+			new VStack([{ component: transcript, basis: 0, grow: 1 }, new Text("dock", 0, 0)]),
+			20,
+			4,
+			() => {},
+		);
+
+		assert.ok(frame.lines[2]?.includes("y=0,h=34,r=1"));
 	});
 
 	it("composes horizontal children at allocated widths", () => {
