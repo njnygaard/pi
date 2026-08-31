@@ -2,9 +2,7 @@
  * System prompt construction and project context loading
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { getAgentDir, getDocsPath, getExamplesPath, getReadmePath } from "../config.ts";
+import { getDocsPath, getExamplesPath, getReadmePath } from "../config.ts";
 import { formatSkillsForPrompt, type Skill } from "./skills.ts";
 
 export interface BuildSystemPromptOptions {
@@ -20,57 +18,10 @@ export interface BuildSystemPromptOptions {
 	appendSystemPrompt?: string;
 	/** Working directory. */
 	cwd: string;
-	/** Agent config directory. Default: getAgentDir(). */
-	agentDir?: string;
-	/** Default system prompt template. Primarily for tests and embedded runtimes. */
-	defaultPromptTemplate?: string;
 	/** Pre-loaded context files. */
 	contextFiles?: Array<{ path: string; content: string }>;
 	/** Pre-loaded skills. */
 	skills?: Skill[];
-}
-
-export const DEFAULT_SYSTEM_PROMPT_FILENAME = "DEFAULT_SYSTEM.md";
-
-const FALLBACK_DEFAULT_PROMPT_TEMPLATE = `You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
-
-Available tools:
-{{toolsList}}
-
-In addition to the tools above, you may have access to other custom tools depending on the project.
-
-Guidelines:
-{{guidelines}}
-
-Pi documentation (read only when the user asks about pi itself, its SDK, extensions, themes, skills, or TUI):
-- Main documentation: {{readmePath}}
-- Additional docs: {{docsPath}}
-- Examples: {{examplesPath}} (extensions, custom tools, SDK)
-- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory
-- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), pi packages (docs/packages.md), environment variables (docs/environment-variables.md)
-- When working on pi topics, read the docs and examples, and follow .md cross-references before implementing
-- Always read pi .md files completely and follow links to related docs (e.g., tui.md for TUI API details)`;
-
-function loadDefaultPromptTemplate(options: BuildSystemPromptOptions): string {
-	if (options.defaultPromptTemplate !== undefined) {
-		return options.defaultPromptTemplate.trimEnd();
-	}
-
-	const agentDir = options.agentDir ?? getAgentDir();
-	const filePath = join(agentDir, DEFAULT_SYSTEM_PROMPT_FILENAME);
-	if (!existsSync(filePath)) {
-		return FALLBACK_DEFAULT_PROMPT_TEMPLATE;
-	}
-
-	return readFileSync(filePath, "utf-8").trimEnd();
-}
-
-function renderPromptTemplate(template: string, values: Record<string, string>): string {
-	let rendered = template;
-	for (const [key, value] of Object.entries(values)) {
-		rendered = rendered.replaceAll(`{{${key}}}`, value);
-	}
-	return rendered;
 }
 
 /** Build the system prompt with tools, guidelines, and context */
@@ -174,13 +125,24 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 
 	const guidelines = guidelinesList.map((g) => `- ${g}`).join("\n");
 
-	let prompt = renderPromptTemplate(loadDefaultPromptTemplate(options), {
-		toolsList,
-		guidelines,
-		readmePath,
-		docsPath,
-		examplesPath,
-	});
+	let prompt = `You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
+
+Available tools:
+${toolsList}
+
+In addition to the tools above, you may have access to other custom tools depending on the project.
+
+Guidelines:
+${guidelines}
+
+Pi documentation (read only when the user asks about pi itself, its SDK, extensions, themes, skills, or TUI):
+- Main documentation: ${readmePath}
+- Additional docs: ${docsPath}
+- Examples: ${examplesPath} (extensions, custom tools, SDK)
+- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory
+- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), pi packages (docs/packages.md), environment variables (docs/environment-variables.md)
+- When working on pi topics, read the docs and examples, and follow .md cross-references before implementing
+- Always read pi .md files completely and follow links to related docs (e.g., tui.md for TUI API details)`;
 
 	if (appendSection) {
 		prompt += appendSection;
