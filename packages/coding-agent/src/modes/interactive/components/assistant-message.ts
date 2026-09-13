@@ -5,6 +5,7 @@ import {
 	Container,
 	Markdown,
 	type MarkdownTheme,
+	MouseRegion,
 	Spacer,
 	Text,
 	truncateToWidth,
@@ -79,6 +80,7 @@ export class AssistantMessageComponent extends Container {
 	private lastMessage?: AssistantMessage;
 	private hasToolCalls = false;
 	private isStreaming = false;
+	private thinkingVisibilityOverrides = new Map<number, boolean>();
 
 	constructor(
 		message?: AssistantMessage,
@@ -116,6 +118,7 @@ export class AssistantMessageComponent extends Container {
 
 	setHideThinkingBlock(hide: boolean): void {
 		this.hideThinkingBlock = hide;
+		this.thinkingVisibilityOverrides.clear();
 		if (this.lastMessage) {
 			this.updateContent(this.lastMessage);
 		}
@@ -193,6 +196,7 @@ export class AssistantMessageComponent extends Container {
 		let renderedResponseHeader = false;
 
 		// Render content in order
+		let thinkingRunIndex = 0;
 		for (let i = 0; i < message.content.length; i++) {
 			const content = message.content[i];
 			if (content.type === "text" && content.text.trim()) {
@@ -238,15 +242,11 @@ export class AssistantMessageComponent extends Container {
 					.slice(i + 1)
 					.some((c) => (c.type === "text" && c.text.trim()) || (c.type === "thinking" && c.thinking.trim()));
 
-				if (this.hideThinkingBlock) {
-					// Show one static label for each run of thinking blocks when hidden.
-					this.contentContainer.addChild(
-						new Text(theme.italic(theme.fg("thinkingText", this.hiddenThinkingLabel)), this.outputPad, 0),
-					);
-				} else {
-					// Render each run of thinking blocks as one Markdown section.
-					this.contentContainer.addChild(
-						new Markdown(
+				const runIndex = thinkingRunIndex++;
+				const hidden = this.thinkingVisibilityOverrides.get(runIndex) ?? this.hideThinkingBlock;
+				const thinkingComponent = hidden
+					? new Text(theme.italic(theme.fg("thinkingText", this.hiddenThinkingLabel)), this.outputPad, 0)
+					: new Markdown(
 							thinkingBlocks.join("\n\n"),
 							this.outputPad,
 							0,
@@ -262,9 +262,15 @@ export class AssistantMessageComponent extends Container {
 									this.markdownTransformers,
 								),
 							},
-						),
-					);
-				}
+						);
+				this.contentContainer.addChild(
+					new MouseRegion(thinkingComponent, (event) => {
+						if (event.type !== "click" || event.button !== "left") return undefined;
+						this.thinkingVisibilityOverrides.set(runIndex, !hidden);
+						if (this.lastMessage) this.updateContent(this.lastMessage);
+						return { handled: true };
+					}),
+				);
 				if (hasVisibleContentAfter) {
 					this.contentContainer.addChild(new Spacer(1));
 				}

@@ -50,6 +50,7 @@ type RenderSessionContextThis = {
 	updateEditorBorderColor(): void;
 	getToolExecutionOptions(): { showImages: boolean; imageWidthCells: number; leadingSpacer: boolean };
 	getRegisteredToolDefinition(toolName: string): undefined;
+	maybeShowAssistantDiagnostics(message: AssistantMessage): void;
 	addMessageToChat(message: AgentMessage, options?: { populateHistory?: boolean }): void;
 	renderSessionItems: RenderSessionItems;
 };
@@ -81,6 +82,7 @@ function createFakeInteractiveModeThis(): RenderSessionContextThis {
 		updateEditorBorderColor: vi.fn(),
 		getToolExecutionOptions: () => ({ showImages: false, imageWidthCells: 60, leadingSpacer: true }),
 		getRegisteredToolDefinition: (_toolName: string) => undefined,
+		maybeShowAssistantDiagnostics: vi.fn(),
 		renderSessionItems: (InteractiveMode.prototype as unknown as { renderSessionItems: RenderSessionItems })
 			.renderSessionItems,
 		addMessageToChat(message: AgentMessage) {
