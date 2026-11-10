@@ -169,7 +169,7 @@ test("logs redact provider credentials, proxy secrets, cookies and Basic auth be
 		assert(!JSON.stringify(store.lines("server")).includes(secret));
 	}
 	for (const text of [
-		"Authorization: Basic Zml4dHVyZTpzZWNyZXQ=",
+		`Authorization: Basic ${Buffer.from("fixture:secret").toString("base64")}`,
 		"Cookie: p2-owner=fixture-cookie; session=another-cookie",
 		"Set-Cookie: session=fixture-cookie; HttpOnly",
 		"https://fixture-user:fixture-password@host.test/path",

@@ -509,7 +509,7 @@ test(
 				view.release();
 			}
 		};
-		assert.equal(await ownPwd("own-local"), own);
+		assert.equal(await ownPwd("own-before-move"), own);
 		await sessions.relocate({ id: session.id, cwd: "~/project", env: "box" }, BACKGROUND_CONTEXT);
 		await until(viewer.view, (view) => (view?.docs["pi.agent"] as { cwd?: string })?.cwd === join(home, "project"));
 		assert.equal(statusOf(viewer), "live");
