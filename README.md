@@ -8,6 +8,29 @@
   <a href="https://www.npmjs.com/package/@earendil-works/pi-coding-agent"><img alt="npm" src="https://img.shields.io/npm/v/@earendil-works/pi-coding-agent?style=flat-square" /></a>
 </p>
 
+> [!IMPORTANT]
+> **This personal fork was retired on November 10, 2026.** It is preserved as development history, receives no support or updates, and should not be installed. Use stock [earendil-works/pi](https://github.com/earendil-works/pi) and `@earendil-works/pi-coding-agent` instead.
+
+## Fork history and retirement
+
+This fork began in May 2026 to carry a small set of personal terminal-UI preferences and prompt/runtime customizations while Pi was evolving quickly. It was last reconciled with Pi 1.5.2 at fork commit [`73f8e3519`](https://github.com/njnygaard/pi/commit/73f8e3519c859b724548cd6cdae7ea0e234785c1), through upstream commit [`9642f39a8`](https://github.com/earendil-works/pi/commit/9642f39a80407a3bd0b778184400117a861cb8c2).
+
+Maintaining those patches through upstream's rapid architectural changes eventually cost more than their limited workflow value. Stock Pi also gained native capabilities that satisfy the important underlying needs: `SYSTEM.md` and `APPEND_SYSTEM.md`, model scoping through `/scoped-models` and `enabledModels`, configurable transcript `outputPad`, Markdown transformers, and richer theme and Markdown rendering support. The fork was therefore retired in favor of stock Pi rather than converted into a presentation extension or proposed upstream.
+
+The custom feature history and final disposition are:
+
+| Fork feature | Purpose | Retirement disposition |
+| --- | --- | --- |
+| Externalized system-prompt template | Keep personal agent instructions outside the source tree. | Replaced by stock `<agent-dir>/APPEND_SYSTEM.md` (and the corresponding project-local `.pi/APPEND_SYSTEM.md`), with `SYSTEM.md` and CLI prompt flags available when full replacement is needed. |
+| Response bars, local timestamps, and prompt restatement | Make response boundaries and the triggering prompt visually explicit. | Abandoned: the transcript already preserves turn boundaries and timing, while the extra chrome adds noise and recurring merge work. |
+| Persistent model favorites and a selector toggle | Keep frequently used models at the top of the model selector. | Abandoned: model switching is infrequent, and stock scoped-model ordering plus `enabledModels` provides a sufficient focused set. |
+| Compact tool-call spacing | Remove a blank line before tools when a response contains only hidden thinking and tool calls. | Abandoned: this is a minor spacing preference, and stock transcript padding/rendering is acceptable. |
+| Alternate thinking-level UI | Show thinking level beside the footer model and use a static editor-border color instead of coloring the border by level. | Abandoned: the stock indicator is clear enough; the difference is cosmetic. |
+| Full-width code-block backgrounds | Extend the code-block background across the available transcript width. | Abandoned: stock syntax rendering remains readable and copyable, and its code-block indentation and theme support cover the practical need. |
+| Custom-stream summary authentication fallback | Resolve provider authentication for summaries in a custom streaming path. | Abandoned: the daily configuration no longer uses this path, and upstream authentication changed substantially enough that retaining the fallback would add risk. |
+
+No fork-only behavior is supported after retirement. The remaining source is an archive for understanding the experiments above; new work belongs against stock Pi's documented extension and configuration surfaces.
+
 > New issues and PRs from new contributors are auto-closed by default. Maintainers review auto-closed issues daily. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 # Pi
