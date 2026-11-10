@@ -290,7 +290,7 @@ export class FooterComponent implements Component {
 		const dimPadding = theme.fg("dim", padding);
 		const rightSideText =
 			this.thinkingLevelIndicator === "footerModel"
-				? theme.getThinkingLevelColor(thinkingLevel)(displayedRightSide)
+				? theme.getThinkingBorderColor(thinkingLevel)(displayedRightSide)
 				: theme.fg("dim", displayedRightSide);
 
 		const pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
